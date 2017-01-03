@@ -3,6 +3,7 @@ package com.example.ismaelcarlos.geouat;
 import android.graphics.Point;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -14,7 +15,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class UATMap extends FragmentActivity implements OnMapReadyCallback {
+public class UATMap extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
 
