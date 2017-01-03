@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">GeoUAT</string>
+    <string name="title_activity_uatmap">Map</string>
+</resources>
