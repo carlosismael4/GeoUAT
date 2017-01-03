@@ -1,13 +1,17 @@
 package com.example.ismaelcarlos.geouat;
 
+import android.graphics.Point;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class UATMap extends FragmentActivity implements OnMapReadyCallback {
@@ -37,10 +41,54 @@ public class UATMap extends FragmentActivity implements OnMapReadyCallback {
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        // Add a marker in UAT tamaulipas and move the camera
+        LatLng UAT = new LatLng(23.7157506,-99.1519597);
+        mMap.addMarker(new MarkerOptions().position(UAT).title("4toPiso"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(UAT,17));
+        mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this,R.raw.map_style));
+        addFacultary();
+        position();
+    }
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+    public void position(){
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Projection proj = mMap.getProjection();
+                Point coord = proj.toScreenLocation(latLng);
+
+                Toast.makeText(
+                        UATMap.this,
+                        "Click\n" +
+                                "Lat: " + latLng.latitude + "\n" +
+                                "Lng: " + latLng.longitude + "\n" +
+                                "X: " + coord.x + " - Y: " + coord.y,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public void addFacultary(){
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.71640728,-99.1511106))
+                .title("Comercio"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.7172535726,-99.1512420))
+                .title("CELLAP"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.7172572571,-99.1521712))
+                .title("Trabajo Social"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.7171293570,-99.14989806))
+                .title("Ciencias"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.71822404,-99.15269393))
+                .title("Gimnacio Multi"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.71552169,-99.15311230))
+                .title("FIC"));
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(23.7162351,-99.1522213))
+                .title("Centro de Excelencia"));
     }
 }
