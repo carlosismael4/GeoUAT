@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group >
+        <item
+            android:id="@+id/facultary"
+            android:icon="@drawable/ic_school"
+            android:title="Facultades" />
+        <item
+            android:id="@+id/gym"
+            android:icon="@drawable/ic_fitness"
+            android:title="Gimnacio" />
+        <item
+            android:id="@+id/offices"
+            android:icon="@drawable/ic_business"
+            android:title="Oficinas" />
+        <item
+            android:id="@+id/localdining"
+            android:icon="@drawable/ic_local_dining"
+            android:title="Cafeterias" />
+    </group>
+
+    <item android:title="Communicate">
+        <menu>
+            <item
+                android:id="@+id/nav_share"
+                android:icon="@drawable/ic_menu_share"
+                android:title="Share" />
+            <item
+                android:id="@+id/nav_send"
+                android:icon="@drawable/ic_menu_send"
+                android:title="Send" />
+        </menu>
+    </item>
+
+</menu>
