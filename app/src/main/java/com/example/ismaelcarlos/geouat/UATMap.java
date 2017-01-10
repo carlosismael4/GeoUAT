@@ -84,9 +84,10 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         mMap = googleMap;
         markerFacultary = new ArrayList<>();
         markerOffices = new ArrayList<>();
+        //add window information
+        mMap.setInfoWindowAdapter(new CustomWindowInformation(getLayoutInflater()));
         // Add a marker in UAT tamaulipas and move the camera
         LatLng UAT = new LatLng(23.7157506,-99.1519597);
-       /* mMap.addMarker(new MarkerOptions().position(UAT).title("4toPiso"));*/
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(UAT,17));
         mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this,R.raw.map_style));
        // addFacultary();
@@ -116,7 +117,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         Marker comercio =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71640728,-99.1511106))
-                .title("Comercio"));
+                .title("Comercio")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.comercio)));
         Marker cellap =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7172535726,-99.1512420))
@@ -128,11 +130,13 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         Marker fic =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71552169,-99.15311230))
-                .title("FIC"));
+                .title("Facultad de Ingenieria y Ciencias")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.fic)));
         Marker trabajoSocial =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7172572571,-99.1521712))
-                .title("Trabajo Social"));
+                .title("Trabajo Social")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.trabajosocial)));
 
         markerFacultary.add(comercio);
         markerFacultary.add(cellap);
@@ -151,8 +155,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         Marker centroExcelencia =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7162351,-99.1522213))
-                .title("Centro de Excelencia"))
-                .setIcon(BitmapDescriptorFactory.fromResource(R.drawable.));
+                .title("Centro de Excelencia"));
+               // .setIcon(BitmapDescriptorFactory.fromResource(R.drawable.customwindow));
         Marker multi =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71822404,-99.15269393))
@@ -226,9 +230,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
           //  Toast.makeText(this,"Enviar",Toast.LENGTH_LONG).show();
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        //drawer.
-        //drawer.clearAnimation();
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
 }
