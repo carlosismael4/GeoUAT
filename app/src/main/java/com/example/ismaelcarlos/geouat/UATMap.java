@@ -67,6 +67,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+
     }
 
 
@@ -92,6 +94,14 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this,R.raw.map_style));
        // addFacultary();
         position();
+
+        mMap.setOnInfoWindowClickListener(
+                new GoogleMap.OnInfoWindowClickListener(){
+                    public void onInfoWindowClick(Marker marker){
+                        Toast.makeText(UATMap.this, "Testt", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
     public void position(){
