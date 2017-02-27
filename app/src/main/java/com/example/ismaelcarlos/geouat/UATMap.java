@@ -1,6 +1,13 @@
 package com.example.ismaelcarlos.geouat;
 
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.os.Build;
+import android.os.Handler;
+import android.os.RemoteException;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -9,8 +16,10 @@ import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,22 +36,39 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.altbeacon.beacon.Beacon;
+import org.altbeacon.beacon.BeaconConsumer;
+import org.altbeacon.beacon.BeaconManager;
+import org.altbeacon.beacon.MonitorNotifier;
+import org.altbeacon.beacon.RangeNotifier;
+import org.altbeacon.beacon.Region;
+import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
-        NavigationView.OnNavigationItemSelectedListener{
+        NavigationView.OnNavigationItemSelectedListener, BeaconConsumer{
 
     private GoogleMap mMap;
     private boolean flagFacultary = false;
     private boolean flagGym = false;
     private List<Marker> markerFacultary;
     private List<Marker> markerOffices;
+    private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+    protected static final String TAG = "MonitoringActivity";
+    private BeaconManager beaconManager;
+    private BackgroundPowerSaver backgroundPowerSaver;
+    private String minor;
+    private String major;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_uatmap);
+        backgroundPowerSaver = new BackgroundPowerSaver(this);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -68,7 +94,55 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android M Permission check
+            if (this.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("This app needs location access");
+                builder.setMessage("Please grant location access so this app can detect beacons.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener(){
+                    @RequiresApi(api = Build.VERSION_CODES.M)
+                    public void onDismiss(DialogInterface dialog) {
+                        requestPermissions(new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION}
+                                ,PERMISSION_REQUEST_COARSE_LOCATION);}
 
+                });
+                builder.show();}
+        }
+
+        beaconManager = BeaconManager.getInstanceForApplication(this);
+        // To detect proprietary beacons, you must add a line like below corresponding to your beacon
+        // type.  Do a web search for "setBeaconLayout" to get the proper expression.
+        // beaconManager.getBeaconParsers().add(new BeaconParser().
+        //        setBeaconLayout("m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25"));
+        beaconManager.bind(this);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_COARSE_LOCATION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("ME ENCANTAS", "coarse location permission granted");
+                } else {
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("Functionality limited");
+                    builder.setMessage("Since location access has not been granted, this app will not be able to discover beacons when in the background.");
+                    builder.setPositiveButton(android.R.string.ok, null);
+                    builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+                        @Override
+                        public void onDismiss(DialogInterface dialog) {
+                        }
+
+                    });
+                    builder.show();
+                }
+                return;
+            }
+        }
     }
 
 
@@ -94,14 +168,18 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this,R.raw.map_style));
        // addFacultary();
         position();
-
+        createMarkersFacultary();
+        createMarkersOffices();
         mMap.setOnInfoWindowClickListener(
                 new GoogleMap.OnInfoWindowClickListener(){
                     public void onInfoWindowClick(Marker marker){
                         Toast.makeText(UATMap.this, "Testt", Toast.LENGTH_SHORT).show();
+                        Intent i = new Intent(UATMap.this,InformationActivity.class);
+                        startActivity(i);
                     }
                 }
         );
+
     }
 
     public void position(){
@@ -122,63 +200,74 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         });
     }
 
-    public void addMarkersFacultary(){
-
+    public void createMarkersFacultary(){
         Marker comercio =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71640728,-99.1511106))
                 .title("Comercio")
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.comercio)));
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.comercio))
+                .snippet("Fac0"));
         Marker cellap =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7172535726,-99.1512420))
-                .title("CELLAP"));
+                .title("CELLAP")
+                .snippet("Fac1"));
         Marker ciencias =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7171293570,-99.14989806))
-                .title("Ciencias"));
+                .title("Ciencias")
+                .snippet("Fac2"));
         Marker fic =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71552169,-99.15311230))
                 .title("Facultad de Ingenieria y Ciencias")
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.fic)));
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.fic))
+                .snippet("Fac3"));
         Marker trabajoSocial =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7172572571,-99.1521712))
                 .title("Trabajo Social")
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.trabajosocial)));
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.trabajosocial))
+                .snippet("Fac4"));
 
         markerFacultary.add(comercio);
         markerFacultary.add(cellap);
         markerFacultary.add(ciencias);
         markerFacultary.add(fic);
         markerFacultary.add(trabajoSocial);
-        flagFacultary = true;
+        hideMarkers(markerFacultary);
     }
-    public void removeMarkers(List<Marker> markers){
+    public void hideMarkers(List<Marker> markers){
         for(int i = 0; i < markers.size(); i++){
-            markers.get(i).remove();
+            markers.get(i).setVisible(false);
         }
     }
-    public void addMarkersOffices(){
 
+    public void showMarkers(List<Marker> markers){
+        for(int i = 0; i < markers.size(); i++){
+            markers.get(i).setVisible(true);
+        }
+    }
+    public void createMarkersOffices(){
         Marker centroExcelencia =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7162351,-99.1522213))
-                .title("Centro de Excelencia"));
-               // .setIcon(BitmapDescriptorFactory.fromResource(R.drawable.customwindow));
+                .title("Centro de Excelencia")
+                .snippet("Office1"));
         Marker multi =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.71822404,-99.15269393))
-                .title("Gimnacio Multi"));
+                .title("Gimnacio Multi")
+                .snippet("Office2"));
         Marker fourFloor =
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(23.7157506,-99.1519597))
-                .title("Cuarto Piso"));
+                .title("Cuarto Piso")
+                .snippet("Office3"));
         markerOffices.add(centroExcelencia);
         markerOffices.add(multi);
         markerOffices.add(fourFloor);
-        flagGym = true;
+        hideMarkers(markerOffices);
     }
 
     @Override
@@ -221,15 +310,17 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         if (id == R.id.facultary) {
             if(flagFacultary){
                 flagFacultary = false;
-                removeMarkers(markerFacultary);
+                hideMarkers(markerFacultary);
             }else
-                addMarkersFacultary();
+            {showMarkers(markerFacultary);
+                flagFacultary = true;}
         } else if (id == R.id.gym) {
             if(flagGym){
                 flagGym = false;
-                removeMarkers(markerOffices);
+                hideMarkers(markerOffices);
             }else
-                addMarkersOffices();
+            { showMarkers(markerOffices);
+                flagGym = true;}
         } else if (id == R.id.offices) {
           //  Toast.makeText(this,"slides",Toast.LENGTH_LONG).show();
         } else if (id == R.id.localdining) {
@@ -242,6 +333,82 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    ///////////BEACON
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        beaconManager.unbind(this);
+    }
+    @Override
+    public void onBeaconServiceConnect() {
+        beaconManager.addMonitorNotifier(new MonitorNotifier() {
+            @Override
+            public void didEnterRegion(Region region) {
+                Log.e(TAG, "Acabo de ver un beacon por primera vez!");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Your dialog code.
+                        AlertDialog alertDialog = new AlertDialog.Builder(UATMap.this).create();
+                        alertDialog.setTitle("Beacon");
+                        alertDialog.setMessage("Se ha detectado un beacon.");
+                        alertDialog.show();
+                    }
+                });
+            }
+
+            @Override
+            public void didExitRegion(Region region) {
+                Log.e(TAG,"Ya no veo un faro");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Your dialog code.
+                        minor = "0";
+                        major = "0";
+                    }
+                });
+            }
+
+            @Override
+            public void didDetermineStateForRegion(int state, Region region) {
+                Log.e(TAG, "I have just switched from seeing/not seeing beacons: " + state);
+            }
+        });
+
+        try {
+            beaconManager.startMonitoringBeaconsInRegion(new Region("myMonitoringUniqueId", null, null, null));
+        } catch (RemoteException e) {    }
+
+        beaconManager.addRangeNotifier(new RangeNotifier() {
+            @Override
+            public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
+                if (beacons.size() > 0) {
+                    String id1 = beacons.iterator().next().getId1().toString();
+                    String id2 = beacons.iterator().next().getId2().toString();
+                    String id3 = beacons.iterator().next().getId3().toString();
+                    Log.e("didRangeBeaconsInRegion", "The first beacon I see is about "+beacons.iterator().next().getDistance()+" meters away.");
+                    if(minor.equals(id2) && major.equals(id3)){
+
+                    }else{
+                        minor = id2;
+                        major = id3;
+
+                    }
+                    Log.e("Id1", id1);
+                    minor = id2;
+                    Log.e("Minor", minor);
+                    major = id3;
+                    Log.e("Major", major);
+                }
+            }
+        });
+
+        try {
+            beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId", null, null, null));
+        } catch (RemoteException e) {    }
     }
 
 }

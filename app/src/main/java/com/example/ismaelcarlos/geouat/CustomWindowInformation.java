@@ -25,6 +25,7 @@ public class CustomWindowInformation  implements InfoWindowAdapter {
         if (marker != null) {
             textViewTitle = (TextView) v.findViewById(R.id.textViewTitle);
             textViewTitle.setText(marker.getTitle());
+
         }
         return (v);
     }
