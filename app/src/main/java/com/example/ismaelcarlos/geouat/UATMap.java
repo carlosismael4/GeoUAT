@@ -35,6 +35,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconConsumer;
@@ -44,9 +46,12 @@ import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         NavigationView.OnNavigationItemSelectedListener, BeaconConsumer{
@@ -60,9 +65,13 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
     protected static final String TAG = "MonitoringActivity";
     private BeaconManager beaconManager;
     private BackgroundPowerSaver backgroundPowerSaver;
-    private String minor;
-    private String major;
-
+    private RequestTask requestTask;
+    private String minor = "";
+    private String major = "";
+    private String auxMinor = "";
+    private String auxMajor = "";
+    private List<EventMapper> eventMappersList;
+    private String snippet = "No hay Información para mostrar.";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,6 +126,19 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         // beaconManager.getBeaconParsers().add(new BeaconParser().
         //        setBeaconLayout("m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25"));
         beaconManager.bind(this);
+        requestTask = new RequestTask();
+        try {
+            String eventos = requestTask.execute("2","1").get();
+            Log.e("Cuis",eventos);
+            Gson gson = new Gson();
+            Type eventListType = new TypeToken<ArrayList<EventMapper>>(){}.getType();
+            eventMappersList =  gson.fromJson(eventos,eventListType);
+            Log.e("Mapeados",eventMappersList.get(0).toString());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -161,7 +183,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         markerFacultary = new ArrayList<>();
         markerOffices = new ArrayList<>();
         //add window information
-        mMap.setInfoWindowAdapter(new CustomWindowInformation(getLayoutInflater()));
+        snippet = eventMappersList.get(0).getSnippet();
+        mMap.setInfoWindowAdapter(new CustomWindowInformation(getLayoutInflater(),snippet));
         // Add a marker in UAT tamaulipas and move the camera
         LatLng UAT = new LatLng(23.7157506,-99.1519597);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(UAT,17));
@@ -173,7 +196,11 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         mMap.setOnInfoWindowClickListener(
                 new GoogleMap.OnInfoWindowClickListener(){
                     public void onInfoWindowClick(Marker marker){
-                        Toast.makeText(UATMap.this, "Testt", Toast.LENGTH_SHORT).show();
+                        if(marker.getSnippet().equals(snippet)){
+                            Toast.makeText(UATMap.this,"Son iguales " + marker.getSnippet() + "-"+snippet,Toast.LENGTH_LONG).show();
+                        }else{
+                            Toast.makeText(UATMap.this,"No iguales " + marker.getSnippet() + "-"+snippet,Toast.LENGTH_LONG).show();
+                        }
                         Intent i = new Intent(UATMap.this,InformationActivity.class);
                         startActivity(i);
                     }
@@ -288,9 +315,6 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -350,7 +374,6 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        // Your dialog code.
                         AlertDialog alertDialog = new AlertDialog.Builder(UATMap.this).create();
                         alertDialog.setTitle("Beacon");
                         alertDialog.setMessage("Se ha detectado un beacon.");
@@ -390,12 +413,16 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                     String id2 = beacons.iterator().next().getId2().toString();
                     String id3 = beacons.iterator().next().getId3().toString();
                     Log.e("didRangeBeaconsInRegion", "The first beacon I see is about "+beacons.iterator().next().getDistance()+" meters away.");
-                    if(minor.equals(id2) && major.equals(id3)){
-
-                    }else{
+                    if(!minor.equals(id2) && !major.equals(id3)){
                         minor = id2;
                         major = id3;
-
+                        requestTask = new RequestTask();
+                        requestTask.execute();
+                        Log.e("Nuevo ", "Primera Vez");
+                        auxMinor = minor;
+                        auxMajor = major;
+                    }else if(auxMinor.equals(id2) && auxMajor.equals(id3)){
+                        Log.e("Es el mismo beacon", "BOM");
                     }
                     Log.e("Id1", id1);
                     minor = id2;

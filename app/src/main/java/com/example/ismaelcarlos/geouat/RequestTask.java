@@ -1,12 +1,16 @@
 package com.example.ismaelcarlos.geouat;
 
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -14,52 +18,50 @@ import java.net.URL;
  * Created by Ismael Carlos on 2/20/2017.
  */
 
-public class RequestTask  extends AsyncTask<Void, Void, String> {
+public class RequestTask  extends AsyncTask<String, Void, String> {
 
     @Override
-    protected String doInBackground(Void... params) {
+    protected String doInBackground(String... params) {
         // These two need to be declared outside the try/catch
         // so that they can be closed in the finally block.
         HttpURLConnection urlConnection = null;
         BufferedReader reader = null;
-
-        // Will contain the raw JSON response as a string.
         String forecastJsonStr = null;
 
         try {
-            // Construct the URL for the OpenWeatherMap query
-            // Possible parameters are avaiable at OWM's forecast API page, at
-            // http://openweathermap.org/API#forecast
-            URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7&appid=2de143494c0b295cca9337e1e96b00e0");
+            URL url = new URL("http://192.168.0.19/geoUAT/appweb/ServerRequests/EventRequest/getEventById.php");
 
             // Create the request to OpenWeatherMap, and open the connection
             urlConnection = (HttpURLConnection) url.openConnection();
-            urlConnection.setRequestMethod("GET");
+            urlConnection.setRequestMethod("POST");
+
+            Uri.Builder builder = new Uri.Builder()
+                    .appendQueryParameter("minor", params[0])
+                    .appendQueryParameter("major", params[1]);
+            String query = builder.build().getEncodedQuery();
+            //Enviar la Infor.
+            OutputStream os = urlConnection.getOutputStream();
+            BufferedWriter writer = new BufferedWriter(
+                    new OutputStreamWriter(os, "UTF-8"));
+            writer.write(query);
+            writer.flush();
+            writer.close();
+            os.close();
             urlConnection.connect();
 
-            // Read the input stream into a String
-            InputStream inputStream = urlConnection.getInputStream();
-            StringBuffer buffer = new StringBuffer();
-            if (inputStream == null) {
-                // Nothing to do.
-                return null;
-            }
-            reader = new BufferedReader(new InputStreamReader(inputStream));
-
+            // Read data sent from server
+            InputStream input = urlConnection.getInputStream();
+            reader = new BufferedReader(new InputStreamReader(input));
+            StringBuilder result = new StringBuilder();
             String line;
+
             while ((line = reader.readLine()) != null) {
-                // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                // But it does make debugging a *lot* easier if you print out the completed
-                // buffer for debugging.
-                buffer.append(line + "\n");
+                result.append(line);
             }
 
-            if (buffer.length() == 0) {
-                // Stream was empty.  No point in parsing.
-                return null;
-            }
-            forecastJsonStr = buffer.toString();
-            return forecastJsonStr;
+            // Pass data to onPostExecute method
+            return(result.toString());
+
         } catch (IOException e) {
             Log.e("PlaceholderFragment", "Error ", e);
             // If the code didn't successfully get the weather data, there's no point in attemping
@@ -69,13 +71,7 @@ public class RequestTask  extends AsyncTask<Void, Void, String> {
             if (urlConnection != null) {
                 urlConnection.disconnect();
             }
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (final IOException e) {
-                    Log.e("PlaceholderFragment", "Error closing stream", e);
-                }
-            }
+
         }
     }
 

@@ -10,47 +10,47 @@ import java.io.Serializable;
 
 public class EventMapper implements Serializable {
 
-    @SerializedName("titulo")
-    private String titulo;
+    @SerializedName("Titulo")
+    private String Titulo;
 
-    @SerializedName("descripcion")
-    private String descripcion;
+    @SerializedName("Descripcion")
+    private String Descripcion;
 
-    @SerializedName("idEvent")
-    private int idEvent;
+    @SerializedName("IdEvento")
+    private String IdEvent;
 
-    @SerializedName("snippet")
-    private String snippet;
+    @SerializedName("Snippet")
+    private String Snippet;
 
     public String getSnippet() {
-        return snippet;
+        return Snippet;
     }
 
     public void setSnippet(String snippet) {
-        this.snippet = snippet;
+        this.Snippet = snippet;
     }
 
     public String getTitulo() {
-        return titulo;
+        return Titulo;
     }
 
     public void setTitulo(String titulo) {
-        this.titulo = titulo;
+        this.Titulo = titulo;
     }
 
     public String getDescripcion() {
-        return descripcion;
+        return Descripcion;
     }
 
     public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
+        this.Descripcion = descripcion;
     }
 
-    public int getIdEvent() {
-        return idEvent;
+    public String getIdEvent() {
+        return IdEvent;
     }
 
-    public void setIdEvent(int idEvent) {
-        this.idEvent = idEvent;
+    public void setIdEvent(String idEvent) {
+        this.IdEvent = idEvent;
     }
 }

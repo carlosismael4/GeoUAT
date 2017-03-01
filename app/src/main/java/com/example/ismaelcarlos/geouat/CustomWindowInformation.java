@@ -14,9 +14,11 @@ import com.google.android.gms.maps.model.Marker;
 public class CustomWindowInformation  implements InfoWindowAdapter {
     LayoutInflater inflater = null;
     private TextView textViewTitle;
+    private String snippet;
 
-    public CustomWindowInformation(LayoutInflater inflater) {
+    public CustomWindowInformation(LayoutInflater inflater,String snippet) {
         this.inflater = inflater;
+        this.snippet = snippet;
     }
 
     @Override
