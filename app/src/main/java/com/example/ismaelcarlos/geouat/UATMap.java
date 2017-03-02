@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
@@ -46,6 +47,7 @@ import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +74,7 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
     private String auxMajor = "";
     private List<EventMapper> eventMappersList;
     private String snippet = "No hay Información para mostrar.";
+    private Gson gson;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +87,8 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         mapFragment.getMapAsync(this);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        gson = new Gson();
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -126,19 +131,7 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         // beaconManager.getBeaconParsers().add(new BeaconParser().
         //        setBeaconLayout("m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25"));
         beaconManager.bind(this);
-        requestTask = new RequestTask();
-        try {
-            String eventos = requestTask.execute("2","1").get();
-            Log.e("Cuis",eventos);
-            Gson gson = new Gson();
-            Type eventListType = new TypeToken<ArrayList<EventMapper>>(){}.getType();
-            eventMappersList =  gson.fromJson(eventos,eventListType);
-            Log.e("Mapeados",eventMappersList.get(0).toString());
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
@@ -183,8 +176,7 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
         markerFacultary = new ArrayList<>();
         markerOffices = new ArrayList<>();
         //add window information
-        snippet = eventMappersList.get(0).getSnippet();
-        mMap.setInfoWindowAdapter(new CustomWindowInformation(getLayoutInflater(),snippet));
+        mMap.setInfoWindowAdapter(new CustomWindowInformation(getLayoutInflater()));
         // Add a marker in UAT tamaulipas and move the camera
         LatLng UAT = new LatLng(23.7157506,-99.1519597);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(UAT,17));
@@ -198,11 +190,25 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                     public void onInfoWindowClick(Marker marker){
                         if(marker.getSnippet().equals(snippet)){
                             Toast.makeText(UATMap.this,"Son iguales " + marker.getSnippet() + "-"+snippet,Toast.LENGTH_LONG).show();
+                            Intent i = new Intent(UATMap.this,InformationActivity.class);
+                            Bundle bundle = new Bundle();
+                            if(eventMappersList.size() > 0){
+                                bundle.putSerializable("eventMappersList", (Serializable) eventMappersList);
+                                bundle.putSerializable("option","2");
+                                i.putExtras(bundle);
+                            }else{
+                                bundle.putSerializable("option","1");
+                                i.putExtras(bundle);
+                            }
+                            startActivity(i);
                         }else{
                             Toast.makeText(UATMap.this,"No iguales " + marker.getSnippet() + "-"+snippet,Toast.LENGTH_LONG).show();
+                            Intent i = new Intent(UATMap.this,InformationActivity.class);
+                            Bundle bundle = new Bundle();
+                            bundle.putSerializable("option","1");
+                            i.putExtras(bundle);
+                            startActivity(i);
                         }
-                        Intent i = new Intent(UATMap.this,InformationActivity.class);
-                        startActivity(i);
                     }
                 }
         );
@@ -391,6 +397,7 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                         // Your dialog code.
                         minor = "0";
                         major = "0";
+                        snippet = "";
                     }
                 });
             }
@@ -398,6 +405,14 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
             @Override
             public void didDetermineStateForRegion(int state, Region region) {
                 Log.e(TAG, "I have just switched from seeing/not seeing beacons: " + state);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Your dialog code.
+                        minor = "0";
+                        major = "0";
+                    }
+                });
             }
         });
 
@@ -416,8 +431,19 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                     if(!minor.equals(id2) && !major.equals(id3)){
                         minor = id2;
                         major = id3;
-                        requestTask = new RequestTask();
-                        requestTask.execute();
+                        try {
+                            requestTask = new RequestTask();
+                            String eventos = requestTask.execute(minor,major).get();
+                            Log.e("Cuis",eventos);
+                            Type eventListType = new TypeToken<ArrayList<EventMapper>>(){}.getType();
+                            eventMappersList =  gson.fromJson(eventos,eventListType);
+                            Log.e("Mapeados",eventMappersList.get(0).toString());
+                            snippet = eventMappersList.get(0).getSnippet();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        } catch (ExecutionException e) {
+                            e.printStackTrace();
+                        }
                         Log.e("Nuevo ", "Primera Vez");
                         auxMinor = minor;
                         auxMajor = major;
@@ -425,9 +451,7 @@ public class UATMap extends AppCompatActivity implements OnMapReadyCallback,
                         Log.e("Es el mismo beacon", "BOM");
                     }
                     Log.e("Id1", id1);
-                    minor = id2;
                     Log.e("Minor", minor);
-                    major = id3;
                     Log.e("Major", major);
                 }
             }

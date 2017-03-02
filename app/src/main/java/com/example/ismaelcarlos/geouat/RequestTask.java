@@ -29,7 +29,7 @@ public class RequestTask  extends AsyncTask<String, Void, String> {
         String forecastJsonStr = null;
 
         try {
-            URL url = new URL("http://192.168.0.19/geoUAT/appweb/ServerRequests/EventRequest/getEventById.php");
+            URL url = new URL("http://10.0.0.6/geoUAT/appweb/ServerRequests/EventRequest/getEventById.php");
 
             // Create the request to OpenWeatherMap, and open the connection
             urlConnection = (HttpURLConnection) url.openConnection();

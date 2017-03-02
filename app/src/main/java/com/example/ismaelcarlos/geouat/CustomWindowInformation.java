@@ -16,9 +16,9 @@ public class CustomWindowInformation  implements InfoWindowAdapter {
     private TextView textViewTitle;
     private String snippet;
 
-    public CustomWindowInformation(LayoutInflater inflater,String snippet) {
+    public CustomWindowInformation(LayoutInflater inflater/*,String snippet*/) {
         this.inflater = inflater;
-        this.snippet = snippet;
+       // this.snippet = snippet;
     }
 
     @Override
